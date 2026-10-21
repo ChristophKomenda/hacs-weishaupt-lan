@@ -41,7 +41,7 @@ param(
     [string]$SystemDevice = "10.100.1.230",
     [string]$Username = "admin",
     [string]$Password = "",
-    [ValidateSet("Quick", "Focused", "HeatingCircuit")]
+    [ValidateSet("Quick", "Focused", "HeatingCircuit", "HeatingCircuitV2")]
     [string]$Profile,
     [string]$Label,
     [int[]]$Modules = @(0, 1, 2, 3),
@@ -206,6 +206,31 @@ function New-ProbePlan {
         [int[]]$SelectedModules
     )
 
+
+
+    if ($SelectedProfile -eq "HeatingCircuitV2") {
+        $plan = New-Object 'System.Collections.Generic.List[object]'
+        $seen = @{}
+
+        $references = @(
+            @{ Ox = 0x2533; Vs = 1 },
+            @{ Ox = 0x2582; Vs = 1 },
+            @{ Ox = 0x2559; Vs = 2 },
+            @{ Ox = 0x2507; Vs = 2 }
+        )
+
+        foreach ($r in $references) {
+            Add-PlanFrame -Plan $plan -Seen $seen `
+                -Mi 0x02 -Mx 0 -Ox $r.Ox -Os 0x02 `
+                -Vs $r.Vs -Source "HK1-confirmed"
+        }
+
+        Add-PlanFrame -Plan $plan -Seen $seen `
+            -Mi 0x09 -Mx 1 -Ox 0x2619 -Os 0x02 `
+            -Vs 1 -Source "WTC-pump-unconfirmed"
+
+        return $plan
+    }
 
     if ($SelectedProfile -eq "HeatingCircuit") {
         $plan = New-Object 'System.Collections.Generic.List[object]'
